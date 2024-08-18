@@ -1,6 +1,5 @@
 import { Elysia, t } from "elysia";
 import { Database } from "bun:sqlite";
-import { populate } from "./populate";
 
 const db = new Database("./db.sqlite");
 db.run(`
@@ -13,8 +12,6 @@ db.run(`
 
 db.run("PRAGMA journal_mode = WAL;");
 db.run("PRAGMA synchronous = normal;");
-
-//populate();
 
 const app = new Elysia()
   .onError(({ code, error }) => {
