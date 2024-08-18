@@ -24,6 +24,14 @@ const app = new Elysia()
 
     return results;
   })
+  .get("/co2-high", ({ query }) => {
+    const qry = db.query(
+      "SELECT count(*) as count FROM metrics WHERE data ->> '$.co2' > 1990;"
+    );
+    const results = qry.get() as { count: number };
+
+    return results.count;
+  })
   .post("/delete", () => {
     const query = db.query("DELETE FROM metrics");
     query.run();
