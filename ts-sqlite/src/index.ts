@@ -18,11 +18,15 @@ const app = new Elysia()
     console.log(error.message);
     return code;
   })
-  .get("/", () => {
-    const query = db.query("SELECT * FROM metrics;");
-    const results = query.all();
+  .get("/", ({ query }) => {
+    const qry = db.query("SELECT * FROM metrics;");
+    const results = qry.all();
 
     return results;
+  })
+  .post("/delete", () => {
+    const query = db.query("DELETE FROM metrics");
+    query.run();
   })
   .post(
     "/",

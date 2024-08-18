@@ -1,8 +1,16 @@
 import { faker } from "@faker-js/faker";
 
+console.log("deleting ...");
+await fetch("http://localhost:3000/delete", {
+  method: "POST",
+});
+console.log("deleted");
+
+faker.seed(123);
+
 // CO2 - 30s
-let startDate = new Date("01/01/2023");
-let endDate = new Date("12/31/2023");
+const startDate = new Date("01/01/2023");
+const endDate = new Date("06/15/2023");
 let curDate = structuredClone(startDate);
 
 const payloads = [];
@@ -16,8 +24,6 @@ while (curDate.getTime() < endDate.getTime()) {
 }
 
 // Location - 10m
-startDate = new Date("01/01/2023");
-endDate = new Date("12/31/2023");
 curDate = structuredClone(startDate);
 
 while (curDate.getTime() < endDate.getTime()) {
@@ -33,8 +39,6 @@ while (curDate.getTime() < endDate.getTime()) {
 }
 
 // Humidity - 5m
-startDate = new Date("01/01/2023");
-endDate = new Date("12/31/2023");
 curDate = structuredClone(startDate);
 
 while (curDate.getTime() < endDate.getTime()) {
@@ -49,8 +53,6 @@ while (curDate.getTime() < endDate.getTime()) {
 }
 
 // Brightness - 1m
-startDate = new Date("01/01/2023");
-endDate = new Date("12/31/2023");
 curDate = structuredClone(startDate);
 
 while (curDate.getTime() < endDate.getTime()) {
