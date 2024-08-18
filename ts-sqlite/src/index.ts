@@ -32,6 +32,14 @@ const app = new Elysia()
 
     return results.count;
   })
+  .get("/humidity-avg", ({ query }) => {
+    const qry = db.query(
+      "SELECT timestamp, avg(data ->> '$.humidity') as avg FROM metrics WHERE data ->> '$.humidity' GROUP BY strftime('%d', timestamp);"
+    );
+    const results = qry.all();
+
+    return results;
+  })
   .post("/delete", () => {
     const query = db.query("DELETE FROM metrics");
     query.run();
