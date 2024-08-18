@@ -13,7 +13,7 @@ const startDate = new Date("01/01/2023");
 const endDate = new Date("06/15/2023");
 let curDate = structuredClone(startDate);
 
-const payloads = [];
+const payloads: Array<any> = [];
 while (curDate.getTime() < endDate.getTime()) {
   const payload = {
     data: { co2: faker.number.int({ min: 330, max: 2000 }) },
