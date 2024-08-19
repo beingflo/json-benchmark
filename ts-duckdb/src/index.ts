@@ -1,8 +1,8 @@
 import { Elysia, t } from "elysia";
-import duckdb from "duckdb";
+import { Database } from "duckdb-async";
 
-const db = new duckdb.Database("./duck.db");
-const connection = db.connect();
+const db = await Database.create("./duck.db");
+const connection = await db.connect();
 
 connection.run(`
   CREATE SEQUENCE IF NOT EXISTS seq_id START 1;
@@ -21,46 +21,41 @@ const app = new Elysia()
     console.log(error.message);
     return code;
   })
-  .get("/", () => {
-    const query = connection.all("SELECT * FROM metrics;", (err, res) =>
-      console.log(res)
+  .get("/", async () => {
+    const response = await connection.all("SELECT * FROM metrics;");
+
+    return response;
+  })
+  .get("/co2-high", async () => {
+    const query = await connection.all(
+      "SELECT count(*) as count FROM metrics WHERE (data -> '$.co2') AND CAST(data ->> '$.co2' as int) > 1990;"
     );
 
-    return 200;
+    return Number(query[0].count);
   })
-  .get("/co2-high", () => {
-    const query = connection.all(
-      "SELECT count(*) as count FROM metrics WHERE data ->> '$.co2' > 1990;"
-    );
-    console.log(query);
-
-    return 200;
-  })
-  .get("/humidity-avg", () => {
-    const query = connection.all(
+  .get("/humidity-avg", async () => {
+    const query = await connection.all(
       "SELECT timestamp, avg(data ->> '$.humidity') as avg FROM metrics WHERE data ->> '$.humidity' GROUP BY strftime('%d', timestamp);"
     );
-    console.log(query);
-    return 200;
+    return query;
   })
-  .post("/delete", () => {
-    const query = connection.run("DELETE FROM metrics");
-    console.log(query);
+  .post("/delete", async () => {
+    await connection.run("DELETE FROM metrics");
   })
   .post(
     "/",
-    ({ body }) => {
-      const stmt = connection.prepare(
+    async ({ body }) => {
+      const stmt = await connection.prepare(
         "INSERT INTO metrics (timestamp, data) VALUES (?, ?)"
       );
 
-      body.forEach((b) => {
-        stmt.run(
+      body.forEach(async (b) => {
+        await stmt.run(
           b.timestamp ?? new Date().toISOString(),
           JSON.stringify(b.data)
         );
       });
-      stmt.finalize();
+      await stmt.finalize();
 
       return 200;
     },

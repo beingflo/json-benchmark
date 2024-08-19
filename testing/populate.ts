@@ -10,7 +10,7 @@ faker.seed(123);
 
 // CO2 - 30s
 const startDate = new Date("01/01/2023");
-const endDate = new Date("06/15/2023");
+const endDate = new Date("02/15/2023");
 let curDate = structuredClone(startDate);
 
 const payloads: Array<any> = [];

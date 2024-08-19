@@ -6,7 +6,7 @@
     "dev": "bun run --watch src/index.ts"
   },
   "dependencies": {
-    "duckdb": "^1.0.0",
+    "duckdb-async": "^1.0.0",
     "elysia": "latest"
   },
   "devDependencies": {
