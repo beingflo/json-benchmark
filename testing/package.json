@@ -6,7 +6,8 @@
     "dev": "bun run --watch src/index.ts"
   },
   "dependencies": {
-    "@faker-js/faker": "^8.4.1"
+    "@faker-js/faker": "^8.4.1",
+    "promise-parallel-throttle": "^3.5.0"
   },
   "devDependencies": {
     "bun-types": "latest"

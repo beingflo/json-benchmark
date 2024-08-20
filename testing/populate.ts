@@ -1,4 +1,5 @@
 import { faker } from "@faker-js/faker";
+import * as Throttle from "promise-parallel-throttle";
 
 console.log("deleting ...");
 await fetch("http://localhost:3000/delete", {
@@ -10,7 +11,7 @@ faker.seed(123);
 
 // CO2 - 30s
 const startDate = new Date("01/01/2023");
-const endDate = new Date("02/15/2023");
+const endDate = new Date("12/31/2023");
 let curDate = structuredClone(startDate);
 
 const payloads: Array<any> = [];
@@ -66,14 +67,15 @@ while (curDate.getTime() < endDate.getTime()) {
   curDate = new Date(curDate.getTime() + 60_000);
 }
 
-payloads.sort(
-  (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-);
+const doRequest = async (payload, idx) => {
+  await fetch("http://localhost:3000", {
+    method: "POST",
+    body: JSON.stringify([payload]),
+    headers: { "Content-Type": "application/json" },
+  });
+  console.log("sending", idx);
+};
 
-console.log("populating ...");
-await fetch("http://localhost:3000", {
-  method: "POST",
-  body: JSON.stringify(payloads),
-  headers: { "Content-Type": "application/json" },
-});
-console.log("populated");
+const queued = payloads.map((p, idx) => () => doRequest(p, idx));
+
+await Throttle.all(queued, { maxInProgress: 1 });
