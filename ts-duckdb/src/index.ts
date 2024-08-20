@@ -11,7 +11,7 @@ connection.run(`
 connection.run(`
   CREATE TABLE IF NOT EXISTS metrics (
       id integer primary key default nextval('seq_id'), 
-      timestamp TIME NOT NULL,
+      timestamp TIMESTAMP NOT NULL,
       data JSON NOT NULL
   );
 `);
@@ -36,7 +36,7 @@ const app = new Elysia()
   })
   .get("/humidity-avg", async () => {
     const query = await connection.all(
-      "SELECT timestamp, avg(data ->> '$.humidity') as avg FROM metrics WHERE data ->> '$.humidity' GROUP BY strftime('%d', timestamp);"
+      "SELECT strftime(timestamp, '%m'), avg(cast(data -> '$.humidity' as float)) as avg FROM metrics WHERE data -> '$.humidity' GROUP BY strftime(timestamp, '%m');"
     );
     return query;
   })

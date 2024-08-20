@@ -34,7 +34,7 @@ const app = new Elysia()
   })
   .get("/humidity-avg", ({ query }) => {
     const qry = db.query(
-      "SELECT timestamp, avg(data ->> '$.humidity') as avg FROM metrics WHERE data ->> '$.humidity' GROUP BY strftime('%d', timestamp);"
+      "SELECT timestamp, avg(data ->> '$.humidity') as avg FROM metrics WHERE data ->> '$.humidity' GROUP BY strftime('%m', timestamp);"
     );
     const results = qry.all();
 
