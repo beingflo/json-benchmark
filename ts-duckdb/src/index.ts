@@ -15,6 +15,7 @@ connection.run(`
       data JSON NOT NULL
   );
 `);
+console.log("Migrations done");
 
 const app = new Elysia()
   .onError(({ code, error }) => {
@@ -48,14 +49,18 @@ const app = new Elysia()
       const stmt = await connection.prepare(
         "INSERT INTO metrics (timestamp, data) VALUES (?, ?)"
       );
+      console.log("query prepared created");
 
       body.forEach(async (b) => {
         await stmt.run(
           b.timestamp ?? new Date().toISOString(),
           JSON.stringify(b.data)
         );
+        console.log("query ran");
       });
+      console.log("query finalizing ...");
       await stmt.finalize();
+      console.log("query finalized");
 
       return 200;
     },
