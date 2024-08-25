@@ -67,15 +67,21 @@ while (curDate.getTime() < endDate.getTime()) {
   curDate = new Date(curDate.getTime() + 60_000);
 }
 
+payloads.sort(
+  (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+);
+
 const doRequest = async (payload, idx) => {
   await fetch("http://localhost:3000", {
     method: "POST",
     body: JSON.stringify([payload]),
     headers: { "Content-Type": "application/json" },
   });
-  console.log("sending", idx);
+  if (idx % 1000 === 0) {
+    console.log(`${((idx / payloads.length) * 100).toFixed(1)}%`);
+  }
 };
 
 const queued = payloads.map((p, idx) => () => doRequest(p, idx));
 
-await Throttle.all(queued, { maxInProgress: 1 });
+await Throttle.all(queued, { maxInProgress: 10 });
