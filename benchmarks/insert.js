@@ -9,12 +9,11 @@ export const options = {
 export default function () {
   const res = http.post(
     "http://localhost:3000/",
-    JSON.stringify([
-      {
-        data: { temperature: 12.3, humidity: 52.8 },
-        timestamp: new Date().toISOString(),
-      },
-    ]),
+    JSON.stringify({
+      data: { temperature: 12.3, humidity: 52.8 },
+      type: "humidity",
+      timestamp: new Date().toISOString(),
+    }),
     { headers: { "Content-Type": "application/json" } }
   );
 
