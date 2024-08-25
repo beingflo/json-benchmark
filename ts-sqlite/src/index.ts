@@ -51,22 +51,18 @@ const app = new Elysia()
         "INSERT INTO metrics (timestamp, data) VALUES ($timestamp, $data)"
       );
 
-      body.forEach((b) => {
-        const result = query.run({
-          $timestamp: b.timestamp ?? new Date().toISOString(),
-          $data: JSON.stringify(b.data),
-        });
+      const result = query.run({
+        $timestamp: body.timestamp ?? new Date().toISOString(),
+        $data: JSON.stringify(body.data),
       });
 
       return 200;
     },
     {
-      body: t.Array(
-        t.Object({
-          data: t.Any(),
-          timestamp: t.Optional(t.String({ format: "date-time" })),
-        })
-      ),
+      body: t.Object({
+        data: t.Any(),
+        timestamp: t.Optional(t.String({ format: "date-time" })),
+      }),
     }
   )
   .listen(3000);
