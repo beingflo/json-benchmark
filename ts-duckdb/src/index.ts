@@ -36,7 +36,7 @@ const app = new Elysia()
   })
   .get("/humidity-avg", async () => {
     const query = await connection.all(
-      "SELECT strftime(timestamp, '%m'), avg(cast(data -> '$.humidity' as float)) as avg FROM metrics WHERE data -> '$.humidity' GROUP BY strftime(timestamp, '%m');"
+      "SELECT strftime(timestamp, '%m') as timestamp, avg(cast(data -> '$.humidity' as float)) as avg FROM metrics WHERE data -> '$.humidity' GROUP BY strftime(timestamp, '%m');"
     );
     return query;
   })
