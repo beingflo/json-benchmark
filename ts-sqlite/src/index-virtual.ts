@@ -40,12 +40,9 @@ try {
   console.log("month column already exists");
 }
 
+db.run(`CREATE INDEX IF NOT EXISTS timestamp_index on metrics(timestamp);`);
 db.run(`CREATE INDEX IF NOT EXISTS co2_index on metrics(co2);`);
 db.run(`CREATE INDEX IF NOT EXISTS humidity_index on metrics(humidity);`);
-db.run(`CREATE INDEX IF NOT EXISTS month_index on metrics(month);`);
-db.run(
-  `CREATE INDEX IF NOT EXISTS month_humidity_index on metrics(month, humidity);`
-);
 
 db.run("PRAGMA journal_mode = WAL;");
 db.run("PRAGMA synchronous = normal;");
@@ -66,7 +63,7 @@ const app = new Elysia()
     //   "SELECT count(*) as count FROM metrics WHERE data ->> '$.co2' > 1990;"
     // );
     const qry = db.query(
-      "SELECT count(*) as count FROM metrics WHERE co2 > 0;"
+      "SELECT count(*) as count FROM metrics WHERE co2 > 1990;"
     );
     const results = qry.get() as { count: number };
 
@@ -77,7 +74,7 @@ const app = new Elysia()
     //  "SELECT timestamp, avg(data ->> '$.humidity') as avg FROM metrics WHERE data ->> '$.humidity' GROUP BY strftime('%m', timestamp);"
     //);
     const qry = db.query(
-      "SELECT month, avg(humidity) as avg FROM metrics GROUP BY month;"
+      "SELECT month, humidity as avg FROM metrics WHERE humidity group by month;"
     );
     const results = qry.all();
 
