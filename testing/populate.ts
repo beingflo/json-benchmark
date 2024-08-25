@@ -88,4 +88,4 @@ const doRequest = async (payload, idx) => {
 
 const queued = payloads.map((p, idx) => () => doRequest(p, idx));
 
-await Throttle.all(queued, { maxInProgress: 10 });
+await Throttle.all(queued, { maxInProgress: 1 });
