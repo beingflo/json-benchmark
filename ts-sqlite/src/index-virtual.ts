@@ -74,7 +74,7 @@ const app = new Elysia()
     //  "SELECT timestamp, avg(data ->> '$.humidity') as avg FROM metrics WHERE data ->> '$.humidity' GROUP BY strftime('%m', timestamp);"
     //);
     const qry = db.query(
-      "SELECT month, humidity as avg FROM metrics WHERE humidity group by month;"
+      "SELECT timestamp, avg(humidity) as avg FROM metrics WHERE humidity GROUP BY strftime('%m', timestamp);"
     );
     const results = qry.all();
 

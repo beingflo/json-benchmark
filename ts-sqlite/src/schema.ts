@@ -33,8 +33,8 @@ db.run(`
 `);
 
 db.run(`
-  CREATE INDEX IF NOT EXISTS humidity_month ON humidity(strftime('%m', timestamp));
-`);
+   CREATE INDEX IF NOT EXISTS humidity_month ON humidity(strftime('%m', timestamp));
+ `);
 
 db.run(`
   CREATE TABLE IF NOT EXISTS brightness (
