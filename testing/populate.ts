@@ -81,7 +81,7 @@ const doRequest = async (payload, idx) => {
     body: JSON.stringify(payload),
     headers: { "Content-Type": "application/json" },
   });
-  if (idx % 1000 === 0) {
+  if (idx % 10000 === 0) {
     console.log(`${((idx / payloads.length) * 100).toFixed(1)}%`);
   }
 };
