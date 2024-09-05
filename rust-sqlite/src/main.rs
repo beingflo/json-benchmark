@@ -51,8 +51,31 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn get_humidity_avg() -> &'static str {
-    "Hello, World!"
+#[derive(Debug, Serialize)]
+struct HumidityAvg {
+    timestamp: String,
+    avg: f64,
+}
+
+async fn get_humidity_avg(
+    State(conn): State<Arc<Mutex<Connection>>>,
+) -> (StatusCode, Json<Vec<HumidityAvg>>) {
+    let conn = conn.lock().await;
+    let mut stmt = conn
+        .prepare("SELECT timestamp, avg(data ->> '$.humidity') as avg FROM metrics WHERE data ->> '$.humidity' GROUP BY strftime('%m', timestamp);")
+        .unwrap();
+
+    let response: Result<Vec<HumidityAvg>, _> = stmt
+        .query_map([], |row| {
+            Ok(HumidityAvg {
+                timestamp: row.get(0)?,
+                avg: row.get(1)?,
+            })
+        })
+        .unwrap()
+        .collect();
+
+    (StatusCode::OK, Json(response.unwrap()))
 }
 
 #[derive(Debug, Serialize)]
