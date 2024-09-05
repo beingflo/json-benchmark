@@ -10,3 +10,4 @@ serde_json = "1.0"
 rusqlite = { version = "0.31", features = ["bundled", "serde_json", "functions", "limits", "chrono", "uuid", "extra_check"] }
 rusqlite_migration = "1.2.0"
 chrono = "0.4.38"
+axum = "0.7.5"
