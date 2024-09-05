@@ -9,7 +9,7 @@ use axum::{
 use chrono::Utc;
 use migration::apply_migrations;
 use rusqlite::Connection;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::Mutex;
 
@@ -34,6 +34,8 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let app = Router::new()
+        // `GET /`
+        .route("/", get(get_data))
         // `POST /`
         .route("/", post(upload_data))
         // `POST /delete`
@@ -53,8 +55,40 @@ async fn get_humidity_avg() -> &'static str {
     "Hello, World!"
 }
 
-async fn delete_data() -> &'static str {
-    "Hello, World!"
+#[derive(Debug, Serialize)]
+struct ResponseData {
+    id: i64,
+    timestamp: String,
+    data: Value,
+}
+
+async fn get_data(
+    State(conn): State<Arc<Mutex<Connection>>>,
+) -> (StatusCode, Json<Vec<ResponseData>>) {
+    let conn = conn.lock().await;
+    let mut stmt = conn
+        .prepare("SELECT id, timestamp, data FROM metrics")
+        .unwrap();
+
+    let response: Result<Vec<ResponseData>, _> = stmt
+        .query_map([], |row| {
+            Ok(ResponseData {
+                id: row.get(0)?,
+                timestamp: row.get(1)?,
+                data: row.get(2)?,
+            })
+        })
+        .unwrap()
+        .collect();
+
+    (StatusCode::OK, Json(response.unwrap()))
+}
+
+async fn delete_data(State(conn): State<Arc<Mutex<Connection>>>) -> StatusCode {
+    let conn = conn.lock().await;
+    conn.execute("DELETE FROM metrics", ()).unwrap();
+
+    StatusCode::OK
 }
 
 async fn upload_data(
