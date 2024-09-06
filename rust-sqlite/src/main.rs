@@ -97,7 +97,7 @@ async fn get_humidity_avg(
     let data: Result<Vec<Humidity>, _> = {
         let conn = conn.lock().await;
         let mut stmt = conn
-            .prepare("SELECT timestamp, data FROM metrics WHERE data ->> '$.humidity';")
+            .prepare("SELECT timestamp, data FROM metrics WHERE data -> '$.humidity';")
             .unwrap();
 
         stmt.query_map([], |row| {
@@ -113,9 +113,13 @@ async fn get_humidity_avg(
     let mut map: HashMap<String, Vec<f64>> = HashMap::new();
 
     for d in data.unwrap().iter() {
-        let date = DateTime::parse_from_rfc3339(&d.timestamp);
-        let month = date.unwrap().format("%m-%y").to_string();
-        let dat: HumidityObject = serde_json::from_str(&d.data).unwrap();
+        let Ok(date) = DateTime::parse_from_rfc3339(&d.timestamp) else {
+            continue;
+        };
+        let month = date.format("%m-%y").to_string();
+        let Ok(dat): Result<HumidityObject, _> = serde_json::from_str(&d.data) else {
+            continue;
+        };
 
         match map.get_mut(&month) {
             Some(month_vec) => {
