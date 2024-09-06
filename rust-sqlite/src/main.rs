@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     extract::State,
@@ -6,7 +6,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use migration::apply_migrations;
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
@@ -42,6 +42,8 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/delete", post(delete_data))
         // `GET /humidity-avg`
         .route("/humidity-avg", get(get_humidity_avg))
+        // `GET /humidity-avg-sql`
+        .route("/humidity-avg-sql", get(get_humidity_avg_sql))
         .with_state(conn);
 
     // run our app with hyper, listening globally on port 3000
@@ -57,7 +59,7 @@ struct HumidityAvg {
     avg: f64,
 }
 
-async fn get_humidity_avg(
+async fn get_humidity_avg_sql(
     State(conn): State<Arc<Mutex<Connection>>>,
 ) -> (StatusCode, Json<Vec<HumidityAvg>>) {
     let conn = conn.lock().await;
@@ -76,6 +78,65 @@ async fn get_humidity_avg(
         .collect();
 
     (StatusCode::OK, Json(response.unwrap()))
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Humidity {
+    data: String,
+    timestamp: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct HumidityObject {
+    humidity: f64,
+}
+
+async fn get_humidity_avg(
+    State(conn): State<Arc<Mutex<Connection>>>,
+) -> (StatusCode, Json<Vec<HumidityAvg>>) {
+    let data: Result<Vec<Humidity>, _> = {
+        let conn = conn.lock().await;
+        let mut stmt = conn
+            .prepare("SELECT timestamp, data FROM metrics WHERE data ->> '$.humidity';")
+            .unwrap();
+
+        stmt.query_map([], |row| {
+            Ok(Humidity {
+                timestamp: row.get(0)?,
+                data: row.get(1)?,
+            })
+        })
+        .unwrap()
+        .collect()
+    };
+
+    let mut map: HashMap<String, Vec<f64>> = HashMap::new();
+
+    for d in data.unwrap().iter() {
+        let date = DateTime::parse_from_rfc3339(&d.timestamp);
+        let month = date.unwrap().format("%m-%y").to_string();
+        let dat: HumidityObject = serde_json::from_str(&d.data).unwrap();
+
+        match map.get_mut(&month) {
+            Some(month_vec) => {
+                month_vec.push(dat.humidity);
+            }
+            None => {
+                map.insert(month, vec![dat.humidity]);
+            }
+        }
+    }
+
+    let mut results = Vec::new();
+    for (month, values) in map.iter() {
+        let avg = values.iter().sum::<f64>() / values.len() as f64;
+        results.push(HumidityAvg {
+            timestamp: month.to_string(),
+            avg: avg,
+        })
+    }
+
+    (StatusCode::OK, Json(results))
 }
 
 #[derive(Debug, Serialize)]
