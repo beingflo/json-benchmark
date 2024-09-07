@@ -18,7 +18,7 @@ const payloads: Array<any> = [];
 while (curDate.getTime() < endDate.getTime()) {
   const payload = {
     data: { co2: faker.number.int({ min: 330, max: 2000 }) },
-    type: "co2",
+    bucket: "co2",
     timestamp: curDate.toISOString(),
   };
   payloads.push(payload);
@@ -34,7 +34,7 @@ while (curDate.getTime() < endDate.getTime()) {
       longitude: faker.location.longitude(),
       latitude: faker.location.latitude(),
     },
-    type: "location",
+    bucket: "location",
     timestamp: curDate.toISOString(),
   };
   payloads.push(payload);
@@ -49,7 +49,7 @@ while (curDate.getTime() < endDate.getTime()) {
     data: {
       humidity: faker.number.float({ min: 0, max: 100 }),
     },
-    type: "humidity",
+    bucket: "humidity",
     timestamp: curDate.toISOString(),
   };
   payloads.push(payload);
@@ -64,7 +64,7 @@ while (curDate.getTime() < endDate.getTime()) {
     data: {
       lux: faker.number.float({ min: 0, max: 100_000 }),
     },
-    type: "brightness",
+    bucket: "brightness",
     timestamp: curDate.toISOString(),
   };
   payloads.push(payload);

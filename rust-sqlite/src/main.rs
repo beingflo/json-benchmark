@@ -64,7 +64,7 @@ async fn get_humidity_avg_sql(
 ) -> (StatusCode, Json<Vec<HumidityAvg>>) {
     let conn = conn.lock().await;
     let mut stmt = conn
-        .prepare("SELECT timestamp, avg(data ->> '$.humidity') as avg FROM metrics WHERE data ->> '$.humidity' GROUP BY strftime('%m', timestamp);")
+        .prepare("SELECT timestamp, avg(data ->> '$.humidity') as avg FROM metrics WHERE bucket = 'humidity' GROUP BY strftime('%m', timestamp);")
         .unwrap();
 
     let response: Result<Vec<HumidityAvg>, _> = stmt
@@ -97,7 +97,7 @@ async fn get_humidity_avg(
     let data: Result<Vec<Humidity>, _> = {
         let conn = conn.lock().await;
         let mut stmt = conn
-            .prepare("SELECT timestamp, data FROM metrics WHERE data -> '$.humidity';")
+            .prepare("SELECT timestamp, data FROM metrics WHERE bucket = 'humidity';")
             .unwrap();
 
         stmt.query_map([], |row| {
@@ -155,7 +155,7 @@ async fn get_data(
 ) -> (StatusCode, Json<Vec<ResponseData>>) {
     let conn = conn.lock().await;
     let mut stmt = conn
-        .prepare("SELECT id, timestamp, data FROM metrics")
+        .prepare("SELECT id, timestamp, data FROM metrics;")
         .unwrap();
 
     let response: Result<Vec<ResponseData>, _> = stmt
@@ -185,9 +185,10 @@ async fn upload_data(
 ) -> StatusCode {
     let conn = conn.lock().await;
     conn.execute(
-        "INSERT INTO metrics (timestamp, data) VALUES (?1, ?2)",
+        "INSERT INTO metrics (timestamp, bucket, data) VALUES (?1, ?2, ?3)",
         (
             payload.timestamp.unwrap_or(Utc::now().to_string()),
+            payload.bucket,
             payload.data,
         ),
     )
@@ -200,5 +201,6 @@ async fn upload_data(
 #[derive(Deserialize)]
 struct Data {
     timestamp: Option<String>,
+    bucket: String,
     data: Value,
 }
