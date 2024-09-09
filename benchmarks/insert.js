@@ -11,6 +11,7 @@ export default function () {
     "http://localhost:3000/",
     JSON.stringify({
       data: { temperature: 12.3, co2: 2 },
+      bucket: "test",
       timestamp: new Date().toISOString(),
     }),
     { headers: { "Content-Type": "application/json" } }

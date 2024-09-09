@@ -4,6 +4,7 @@ const response = await fetch("http://localhost:3000", {
   method: "POST",
   body: JSON.stringify({
     data: { co2: faker.number.int({ min: 0, max: 100_000 }) },
+    bucket: "test",
     timestamp: new Date().toISOString(),
   }),
   headers: { "Content-Type": "application/json" },
