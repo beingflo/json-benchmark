@@ -58,7 +58,7 @@ async fn get_humidity_avg_sql(
 ) -> (StatusCode, Json<Vec<HumidityAvg>>) {
     let conn = conn.lock().await;
     let mut stmt = conn
-        .prepare("SELECT timestamp, avg(data ->> '$.humidity') as avg FROM metrics WHERE bucket = 'humidity' GROUP BY strftime('%m', timestamp);")
+        .prepare("SELECT strftime(timestamp, '%m') as timestamp, avg(cast(data -> '$.humidity' as float)) as avg FROM metrics WHERE bucket = 'humidity' GROUP BY strftime(timestamp, '%m');")
         .unwrap();
 
     let response: Result<Vec<HumidityAvg>, _> = stmt
@@ -77,7 +77,7 @@ async fn get_humidity_avg_sql(
 #[derive(Debug, Deserialize, Serialize)]
 struct Humidity {
     data: String,
-    timestamp: String,
+    timestamp: i64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -107,7 +107,7 @@ async fn get_humidity_avg(
     let mut map: HashMap<String, Vec<f64>> = HashMap::new();
 
     for d in data.unwrap().iter() {
-        let Ok(date) = DateTime::parse_from_rfc3339(&d.timestamp) else {
+        let Some(date) = DateTime::from_timestamp_micros(d.timestamp) else {
             continue;
         };
         let month = date.format("%m-%y").to_string();
