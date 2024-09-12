@@ -12,9 +12,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::Mutex;
 
+type StateType = (Arc<Mutex<Connection>>, Arc<Mutex<Vec<Data>>>);
+
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let conn = Arc::new(Mutex::new(Connection::open("./duck.db")?));
+    let buffer = Arc::new(Mutex::new(Vec::<Data>::new()));
 
     conn.lock().await.execute_batch(
         r"CREATE SEQUENCE IF NOT EXISTS seq_id START 1;
@@ -38,7 +41,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/delete", post(delete_data))
         // `GET /humidity-avg`
         .route("/humidity-avg", get(get_humidity_avg))
-        .with_state(conn);
+        .with_state((conn, buffer));
 
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -54,7 +57,7 @@ struct HumidityAvg {
 }
 
 async fn get_humidity_avg(
-    State(conn): State<Arc<Mutex<Connection>>>,
+    State((conn, _)): State<StateType>,
 ) -> (StatusCode, Json<Vec<HumidityAvg>>) {
     let conn = conn.lock().await;
     let mut stmt = conn
@@ -87,12 +90,10 @@ struct ResponseData {
     data: String,
 }
 
-async fn get_data(
-    State(conn): State<Arc<Mutex<Connection>>>,
-) -> (StatusCode, Json<Vec<ResponseData>>) {
+async fn get_data(State((conn, _)): State<StateType>) -> (StatusCode, Json<Vec<ResponseData>>) {
     let conn = conn.lock().await;
     let mut stmt = conn
-        .prepare("SELECT id, timestamp, data FROM metrics LIMIT 1000;")
+        .prepare("SELECT id, timestamp, data FROM metrics ORDER BY id DESC LIMIT 10;")
         .unwrap();
 
     let response: Result<Vec<ResponseData>, _> = stmt
@@ -109,7 +110,7 @@ async fn get_data(
     (StatusCode::OK, Json(response.unwrap()))
 }
 
-async fn delete_data(State(conn): State<Arc<Mutex<Connection>>>) -> StatusCode {
+async fn delete_data(State((conn, _)): State<StateType>) -> StatusCode {
     let conn = conn.lock().await;
     conn.execute("DELETE FROM metrics", []).unwrap();
 
@@ -117,19 +118,30 @@ async fn delete_data(State(conn): State<Arc<Mutex<Connection>>>) -> StatusCode {
 }
 
 async fn upload_data(
-    State(conn): State<Arc<Mutex<Connection>>>,
+    State((conn, buffer)): State<StateType>,
     Json(payload): Json<Data>,
 ) -> StatusCode {
-    let conn = conn.lock().await;
-    conn.execute(
-        "INSERT INTO metrics (timestamp, bucket, data) VALUES (?, ?, ?)",
-        params![
-            payload.timestamp.unwrap_or(Utc::now().to_string()),
-            payload.bucket,
-            payload.data.to_string(),
-        ],
-    )
-    .unwrap();
+    let mut buffer = buffer.lock().await;
+
+    if buffer.len() < 10000 {
+        buffer.push(payload);
+    } else {
+        println!("Flushing buffer");
+        let conn = conn.lock().await;
+        let mut stmt = conn
+            .prepare("INSERT INTO metrics (timestamp, bucket, data) VALUES (?, ?, ?);")
+            .unwrap();
+        while let Some(p) = buffer.pop() {
+            conn.execute("BEGIN TRANSACTION", []).unwrap();
+            stmt.execute(params![
+                p.timestamp.unwrap_or(Utc::now().to_string()),
+                p.bucket,
+                p.data.to_string(),
+            ])
+            .unwrap();
+            conn.execute("COMMIT", []).unwrap();
+        }
+    }
 
     StatusCode::OK
 }
