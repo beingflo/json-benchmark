@@ -9,25 +9,13 @@ console.log("deleted");
 
 faker.seed(123);
 
-// CO2 - 30s
 const startDate = new Date("01/01/2023");
 const endDate = new Date("12/31/2023");
 let curDate = structuredClone(startDate);
 
 const payloads: Array<any> = [];
-while (curDate.getTime() < endDate.getTime()) {
-  const payload = {
-    data: { co2: faker.number.int({ min: 330, max: 2000 }) },
-    bucket: "co2",
-    timestamp: curDate.toISOString(),
-  };
-  payloads.push(payload);
-  curDate = new Date(curDate.getTime() + 30_000);
-}
 
 // Location - 10m
-curDate = structuredClone(startDate);
-
 while (curDate.getTime() < endDate.getTime()) {
   const payload = {
     data: {
@@ -56,21 +44,6 @@ while (curDate.getTime() < endDate.getTime()) {
   curDate = new Date(curDate.getTime() + 300_000);
 }
 
-// Brightness - 1m
-curDate = structuredClone(startDate);
-
-while (curDate.getTime() < endDate.getTime()) {
-  const payload = {
-    data: {
-      lux: faker.number.float({ min: 0, max: 100_000 }),
-    },
-    bucket: "brightness",
-    timestamp: curDate.toISOString(),
-  };
-  payloads.push(payload);
-  curDate = new Date(curDate.getTime() + 60_000);
-}
-
 payloads.sort(
   (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
 );
@@ -81,7 +54,7 @@ const doRequest = async (payload, idx) => {
     body: JSON.stringify(payload),
     headers: { "Content-Type": "application/json" },
   });
-  if (idx % 10000 === 0) {
+  if (idx % 1000 === 0) {
     console.log(`${((idx / payloads.length) * 100).toFixed(1)}%`);
   }
 };
