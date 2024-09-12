@@ -32,14 +32,11 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Migrations done");
 
     let app = Router::new()
-        // `GET /`
         .route("/", get(get_data))
-        // `POST /`
         .route("/", post(upload_data))
-        // `POST /delete`
         .route("/delete", post(delete_data))
-        // `GET /humidity-avg`
         .route("/humidity-avg", get(get_humidity_avg))
+        .route("/gps-coords", get(get_gps_coords))
         .with_state(conn);
 
     // run our app with hyper, listening globally on port 3000
@@ -74,6 +71,31 @@ async fn get_humidity_avg(State(conn): State<StateType>) -> (StatusCode, Json<Ve
     (StatusCode::OK, Json(response.unwrap()))
 }
 
+#[derive(Debug, Serialize)]
+struct GPSResponse {
+    longitude: f64,
+    latitude: f64,
+}
+
+async fn get_gps_coords(State(conn): State<StateType>) -> (StatusCode, Json<Vec<GPSResponse>>) {
+    let conn = conn.lock().await;
+    let mut stmt = conn
+        .prepare("SELECT cast(data -> '$.longitude' as float), cast(data -> '$.latitude' as float) FROM metrics WHERE bucket = 'location' AND cast(data -> '$.longitude' as float) > 6 AND cast(data -> '$.longitude' as float) < 10 AND cast(data -> '$.latitude' as float) > 45 AND cast(data -> '$.latitude' as float) < 50;")
+        .unwrap();
+
+    let response: Result<Vec<GPSResponse>, _> = stmt
+        .query_map([], |row| {
+            Ok(GPSResponse {
+                longitude: row.get(0)?,
+                latitude: row.get(1)?,
+            })
+        })
+        .unwrap()
+        .collect();
+
+    (StatusCode::OK, Json(response.unwrap()))
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 struct Humidity {
     data: String,
@@ -84,13 +106,14 @@ struct Humidity {
 struct ResponseData {
     id: i64,
     timestamp: i64,
+    bucket: String,
     data: String,
 }
 
 async fn get_data(State(conn): State<StateType>) -> (StatusCode, Json<Vec<ResponseData>>) {
     let conn = conn.lock().await;
     let mut stmt = conn
-        .prepare("SELECT id, timestamp, data FROM metrics ORDER BY id DESC LIMIT 10;")
+        .prepare("SELECT id, timestamp, bucket, data FROM metrics ORDER BY id DESC LIMIT 10;")
         .unwrap();
 
     let response: Result<Vec<ResponseData>, _> = stmt
@@ -98,7 +121,8 @@ async fn get_data(State(conn): State<StateType>) -> (StatusCode, Json<Vec<Respon
             Ok(ResponseData {
                 id: row.get(0)?,
                 timestamp: row.get(1)?,
-                data: row.get(2)?,
+                bucket: row.get(2)?,
+                data: row.get(3)?,
             })
         })
         .unwrap()
