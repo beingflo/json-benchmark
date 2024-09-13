@@ -13,6 +13,7 @@ pub fn apply_migrations(connection: &mut Connection) {
         ),
         //M::up("CREATE INDEX IF NOT EXISTS timestamp_index on metrics(timestamp);"),
         //M::up("CREATE INDEX IF NOT EXISTS bucket_index on metrics(bucket);"),
+        M::up("CREATE INDEX IF NOT EXISTS bucket_timestamp_index on metrics(bucket, timestamp);"),
     ]);
 
     migrations.to_latest(connection).unwrap();
