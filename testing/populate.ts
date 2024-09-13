@@ -29,19 +29,45 @@ while (curDate.getTime() < endDate.getTime()) {
   curDate = new Date(curDate.getTime() + 600_000);
 }
 
-// Humidity - 5m
+// CO2 - 1m
 curDate = structuredClone(startDate);
 
 while (curDate.getTime() < endDate.getTime()) {
   const payload = {
     data: {
-      humidity: faker.number.float({ min: 0, max: 100 }),
+      co2: faker.number.float({ min: 0, max: 5000 }),
     },
-    bucket: "humidity",
+    bucket: "co2",
     timestamp: curDate.toISOString(),
   };
   payloads.push(payload);
-  curDate = new Date(curDate.getTime() + 300_000);
+  curDate = new Date(curDate.getTime() + 60_000);
+}
+
+// Structured logs - 1h bursty
+curDate = structuredClone(startDate);
+
+while (curDate.getTime() < endDate.getTime()) {
+  let count = 10;
+  while (count > 0) {
+    const user = faker.internet.userName();
+    const endpoint = faker.internet.url();
+    const payload = {
+      data: {
+        span_id: faker.number.int(),
+        level: faker.datatype.boolean(0.95) ? "success" : "error",
+        user,
+        message: faker.company.buzzPhrase(),
+        endpoint,
+      },
+      bucket: "logs",
+      timestamp: curDate.toISOString(),
+    };
+    payloads.push(payload);
+    curDate = new Date(curDate.getTime() + 100);
+    count -= 1;
+  }
+  curDate = new Date(curDate.getTime() + 3_600_000);
 }
 
 payloads.sort(
