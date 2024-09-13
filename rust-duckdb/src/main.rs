@@ -18,6 +18,8 @@ type StateType = Arc<Mutex<Connection>>;
 pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let conn = Arc::new(Mutex::new(Connection::open("./duck.db")?));
 
+    println!("Opened db");
+
     conn.lock().await.execute_batch(
         r"CREATE SEQUENCE IF NOT EXISTS seq_id START 1;
           CREATE TABLE IF NOT EXISTS metrics (
@@ -35,7 +37,8 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/", get(get_data))
         .route("/", post(upload_data))
         .route("/delete", post(delete_data))
-        .route("/humidity-avg", get(get_humidity_avg))
+        .route("/co2-avg", get(get_co2_avg))
+        .route("/logs", get(get_error_logs))
         .route("/gps-coords", get(get_gps_coords))
         .with_state(conn);
 
@@ -47,20 +50,45 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[derive(Debug, Serialize)]
-struct HumidityAvg {
+struct EndpointCount {
+    endpoint: String,
+    count: i64,
+}
+
+async fn get_error_logs(State(conn): State<StateType>) -> (StatusCode, Json<Vec<EndpointCount>>) {
+    let conn = conn.lock().await;
+    let mut stmt = conn
+        .prepare("SELECT count(*), data -> '$.endpoint' FROM metrics WHERE bucket = 'logs' GROUP BY data -> '$.endpoint';")
+        .unwrap();
+
+    let response: Result<Vec<EndpointCount>, _> = stmt
+        .query_map([], |row| {
+            Ok(EndpointCount {
+                count: row.get(0)?,
+                endpoint: row.get(1)?,
+            })
+        })
+        .unwrap()
+        .collect();
+
+    (StatusCode::OK, Json(response.unwrap()))
+}
+
+#[derive(Debug, Serialize)]
+struct CO2Avg {
     timestamp: String,
     avg: f64,
 }
 
-async fn get_humidity_avg(State(conn): State<StateType>) -> (StatusCode, Json<Vec<HumidityAvg>>) {
+async fn get_co2_avg(State(conn): State<StateType>) -> (StatusCode, Json<Vec<CO2Avg>>) {
     let conn = conn.lock().await;
     let mut stmt = conn
-        .prepare("SELECT strftime(timestamp, '%m') as timestamp, avg(cast(data -> '$.humidity' as float)) as avg FROM metrics WHERE bucket = 'humidity' GROUP BY strftime(timestamp, '%m');")
+        .prepare("SELECT strftime(timestamp, '%m') as timestamp, avg(cast(data -> '$.co2' as int)) as avg FROM metrics WHERE bucket = 'co2' GROUP BY strftime(timestamp, '%m');")
         .unwrap();
 
-    let response: Result<Vec<HumidityAvg>, _> = stmt
+    let response: Result<Vec<CO2Avg>, _> = stmt
         .query_map([], |row| {
-            Ok(HumidityAvg {
+            Ok(CO2Avg {
                 timestamp: row.get(0)?,
                 avg: row.get(1)?,
             })
@@ -94,12 +122,6 @@ async fn get_gps_coords(State(conn): State<StateType>) -> (StatusCode, Json<Vec<
         .collect();
 
     (StatusCode::OK, Json(response.unwrap()))
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct Humidity {
-    data: String,
-    timestamp: i64,
 }
 
 #[derive(Debug, Serialize)]
