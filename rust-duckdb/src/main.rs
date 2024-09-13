@@ -58,7 +58,7 @@ struct EndpointCount {
 async fn get_error_logs(State(conn): State<StateType>) -> (StatusCode, Json<Vec<EndpointCount>>) {
     let conn = conn.lock().await;
     let mut stmt = conn
-        .prepare("SELECT count(*), data -> '$.endpoint' FROM metrics WHERE bucket = 'logs' GROUP BY data -> '$.endpoint';")
+        .prepare("SELECT count(*), data ->> '$.endpoint' FROM metrics WHERE bucket = 'logs' AND cast(data ->> '$.level' as text) = 'error' GROUP BY data ->> '$.endpoint' ORDER BY count(*) DESC LIMIT 10;")
         .unwrap();
 
     let response: Result<Vec<EndpointCount>, _> = stmt

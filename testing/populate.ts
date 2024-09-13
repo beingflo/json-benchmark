@@ -49,9 +49,9 @@ curDate = structuredClone(startDate);
 
 while (curDate.getTime() < endDate.getTime()) {
   let count = 10;
+  const user = faker.internet.userName();
+  const endpoint = faker.internet.url();
   while (count > 0) {
-    const user = faker.internet.userName();
-    const endpoint = faker.internet.url();
     const payload = {
       data: {
         span_id: faker.number.int(),
