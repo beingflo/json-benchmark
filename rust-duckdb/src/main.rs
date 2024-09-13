@@ -20,18 +20,23 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Opened db");
 
+    conn.lock()
+        .await
+        .execute_batch(r"CREATE SEQUENCE IF NOT EXISTS seq_id START 1;")?;
+
+    println!("Created sequence");
+
     conn.lock().await.execute_batch(
-        r"CREATE SEQUENCE IF NOT EXISTS seq_id START 1;
-          CREATE TABLE IF NOT EXISTS metrics (
+        r"CREATE TABLE IF NOT EXISTS metrics (
             id integer primary key default nextval('seq_id'), 
             timestamp TIMESTAMP NOT NULL,
             bucket TEXT NOT NULL,
             data JSON NOT NULL
-        );
-    ",
+          );
+        ",
     )?;
 
-    println!("Migrations done");
+    println!("Created table");
 
     let app = Router::new()
         .route("/", get(get_data))
@@ -58,7 +63,7 @@ struct EndpointCount {
 async fn get_error_logs(State(conn): State<StateType>) -> (StatusCode, Json<Vec<EndpointCount>>) {
     let conn = conn.lock().await;
     let mut stmt = conn
-        .prepare("SELECT count(*), data ->> '$.endpoint' FROM metrics WHERE bucket = 'logs' AND cast(data ->> '$.level' as text) = 'error' GROUP BY data ->> '$.endpoint' ORDER BY count(*) DESC LIMIT 10;")
+        .prepare("SELECT count(*), data ->> '$.endpoint' FROM metrics WHERE bucket = 'logs' AND cast(data ->> '$.level' as text) = 'error' AND timestamp > TIMESTAMP '2024-01-01 00:00:00' - INTERVAL 90 DAY GROUP BY data ->> '$.endpoint' ORDER BY count(*);")
         .unwrap();
 
     let response: Result<Vec<EndpointCount>, _> = stmt
