@@ -56,6 +56,9 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let buffer_len = buffer.len();
             let mut buffer_local: Vec<Data> =
                 buffer.drain(0..std::cmp::min(10000, buffer_len)).collect();
+            if buffer.len() == 0 {
+                buffer.shrink_to_fit();
+            }
             // Free up lock
             drop(buffer);
 
