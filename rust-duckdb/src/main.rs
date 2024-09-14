@@ -29,7 +29,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     conn.lock().await.execute_batch(
         r"CREATE TABLE IF NOT EXISTS metrics (
-            id integer default nextval('seq_id'), 
+            id integer primary key default nextval('seq_id'), 
             timestamp TIMESTAMP NOT NULL,
             bucket TEXT NOT NULL,
             data JSON NOT NULL
@@ -40,7 +40,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Created table");
 
     fn task(conn: Arc<Mutex<Connection>>, buffer: Arc<Mutex<Vec<Data>>>) {
-        let mut interval = tokio::time::interval(Duration::from_millis(1000));
+        let mut interval = tokio::time::interval(Duration::from_millis(100));
         loop {
             let handle = Handle::current();
             handle.block_on(interval.tick());
@@ -53,7 +53,9 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 continue;
             }
 
-            let mut buffer_local: Vec<Data> = buffer.drain(0..).collect();
+            let buffer_len = buffer.len();
+            let mut buffer_local: Vec<Data> =
+                buffer.drain(0..std::cmp::min(10000, buffer_len)).collect();
             // Free up lock
             drop(buffer);
 
