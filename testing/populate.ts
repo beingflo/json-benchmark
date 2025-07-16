@@ -2,7 +2,7 @@ import { faker } from "@faker-js/faker";
 import * as Throttle from "promise-parallel-throttle";
 
 console.log("deleting ...");
-await fetch("http://localhost:3000/delete", {
+await fetch("http://localhost:3006/delete", {
   method: "POST",
 });
 console.log("deleted");
@@ -75,7 +75,7 @@ payloads.sort(
 );
 
 const doRequest = async (payload, idx) => {
-  await fetch("http://localhost:3000", {
+  await fetch("http://localhost:3006", {
     method: "POST",
     body: JSON.stringify(payload),
     headers: { "Content-Type": "application/json" },
