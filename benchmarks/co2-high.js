@@ -7,7 +7,7 @@ export const options = {
 };
 
 export default function () {
-  const res = http.get("http://localhost:3000/co2-high");
+  const res = http.get("http://localhost:3000/co2-avg");
 
   check(res, { "status was 200": (r) => r.status == 200 });
   check(res, { "response was correct": (r) => r.body == "2787" });

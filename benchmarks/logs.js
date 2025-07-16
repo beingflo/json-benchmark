@@ -7,7 +7,7 @@ export const options = {
 };
 
 export default function () {
-  const res = http.get("http://localhost:3000/humidity-avg");
+  const res = http.get("http://localhost:3000/logs");
 
   check(res, { "status was 200": (r) => r.status == 200 });
 }

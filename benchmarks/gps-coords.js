@@ -7,7 +7,7 @@ export const options = {
 };
 
 export default function () {
-  const res = http.get("http://localhost:3007/gps/coordinates");
+  const res = http.get("http://localhost:3000/gps-coords");
 
   check(res, { "status was 200": (r) => r.status == 200 });
   check(res, { "response was correct": (r) => r.body == "2787" });
